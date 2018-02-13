@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // File     : main.c
 // Product  : RF_V1
-// Created  : 05-Feb-2018
+// Created  : 13-Feb-2018
 // Author   : Gerard Zennipman
 // Comment  : This file contains main() which is the entry point after reset.
 // -----------------------------------------------------------------------------
