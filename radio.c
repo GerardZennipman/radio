@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // File     : radio.c
 // Product  : RF_V1
-// Created  : 13-Feb-2018
+// Created  : 19-Feb-2018
 // Author   : Gerard Zennipman
 // Comment  : This file contains SI4455 radio transmit and receive functions.
 // -----------------------------------------------------------------------------
