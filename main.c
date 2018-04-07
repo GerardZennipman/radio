@@ -1,7 +1,7 @@
 // -----------------------------------------------------------------------------
 // File     : main.c
 // Product  : RF_V1
-// Created  : 19-Feb-2018
+// Created  : 10-Mar-2018
 // Author   : Gerard Zennipman
 // Comment  : This file contains main() which is the entry point after reset.
 // -----------------------------------------------------------------------------
@@ -57,15 +57,17 @@
 // -----------------------------------------------------------------------------
 int main(void)
 {
-    int32_t swVersion = 14;
+    int32_t swVersion = 19;
     int32_t redLed = 0;
     int32_t greenLed = 0;
     int32_t debugValue = 0;
     int32_t adcRFVoltage = 0;
     int32_t openSwitch = 0;
     int32_t closeSwitch = 0;
-    int32_t testSCL = 0;
-    int32_t testSDA = 0;
+    int32_t testSCL = 1;
+    int32_t testSCLOld = 1;
+    int32_t testSDA = 1;
+    int32_t testSDAOld = 1;
     char transmitString[80] = {0};
     char tmpString[80] = {0};
     char receivedString[80] = {0};
@@ -129,9 +131,10 @@ int main(void)
         // Every msec:
         // - Use last adc sample to calculate real world value
         // - Read red green leds
-        // - Open is Scl and Close is Sda
+        // - Read SCL SDA
         // - Update LedStateMachine that controls red green leds
         // - Update RadioStateMachineTransmit or RadioStateMachineReceive
+        // - Check and handle change of pin SCL and SDA
         // - Check and handle received uart command
         if (SYS_GetTimer1MilliSeconds() == 0)
         {
@@ -143,17 +146,50 @@ int main(void)
             redLed = LED_GetRedLed();
             greenLed = LED_GetGreenLed();
 
-            // OPEN_OUT = SCL and CLOSE_OUT = SDA
             testSCL = TEST_GetSCL();
             testSDA = TEST_GetSDA();
-            openSwitch = testSCL;
-            closeSwitch = testSDA;
-            SWITCH_SetOpenSwitch(openSwitch);
-            SWITCH_SetCloseSwitch(closeSwitch);
 
             LED_SM_Update();
-            RADIO_SM_TransmitUpdate();
-            // RADIO_SM_ReceiveUpdate();
+
+            // RADIO_SM_TransmitUpdate();
+            RADIO_SM_ReceiveUpdate();
+
+            // If SCL or SDA change then transmit corresponding radio packet
+            if (RADIO_IsTransmitterAvailable() == 1)
+            {
+                if (testSCL != testSCLOld)
+                {
+                    if (testSCL == 0)
+                    {
+                        // SCL is pressed
+                        RADIO_TransmitString("OPEN_1");
+                        // RADIO_TransmitString("BUTTON1");
+                    }
+                    else
+                    {
+                        // SCL is released
+                        RADIO_TransmitString("OPEN_0");
+                        // RADIO_TransmitString("BUTTON2");
+                    }
+                }
+                if (testSDA != testSDAOld)
+                {
+                    if (testSDA == 0)
+                    {
+                        // SDA is pressed
+                        RADIO_TransmitString("CLOSE_1");
+                        // RADIO_TransmitString("BUTTON3");
+                    }
+                    else
+                    {
+                        // SDA is released
+                        RADIO_TransmitString("CLOSE_0");
+                        // RADIO_TransmitString("BUTTON4");
+                    }
+                }
+            }
+            testSCLOld = testSCL;
+            testSDAOld = testSDA;
 
             // If RfUart0 has received string that ends with "\r\n" then copy it
             if (UART_RF_CheckReceivedString(receivedString) == 1)
@@ -275,7 +311,6 @@ int main(void)
                     {
                         // Transmit "SCL: 1/0\r\n"
                         STR_StrCpy("SCL: ", transmitString);
-                        testSCL = TEST_GetSCL();
                         STR_IToA(testSCL, tmpString);
                         STR_StrCat(tmpString, transmitString);
                         STR_StrCat("\r\n", transmitString);
@@ -290,7 +325,6 @@ int main(void)
                     {
                         // Transmit "SDA: 1/0\r\n"
                         STR_StrCpy("SDA: ", transmitString);
-                        testSDA = TEST_GetSDA();
                         STR_IToA(testSDA, tmpString);
                         STR_StrCat(tmpString, transmitString);
                         STR_StrCat("\r\n", transmitString);
